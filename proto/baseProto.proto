@@ -1,0 +1,243 @@
+package baseProto;
+
+//为防止编号冲突，扩展协议命名需从0x00020000或者0x00030000之类的位置开始
+
+enum MSG_HEADER {
+    //client2server
+    C_S_CONNECTING = 0x00000001; //登录
+    C_S_DEBUG_CONNECTING = 0x00000002; //测试模式登录
+    C_S_EXIT_ROOM = 0x00000003; //退出房间
+    C_S_PING = 0x00000004;
+    C_S_TALK = 0x00000005; //发言，发表情
+    C_S_GM_CONTROL = 0x00000006; //GM控制
+    C_S_DISSOLVE_ROOM = 0x00000007; //申请解散房间
+    C_S_DISSOLVE_VOTE = 0x00000008; //解散投票
+    C_S_DEBUG_PROTO = 0x00000009; //C_S的单个客户端调试多边，包装协议
+    C_S_GPS = 0x0000000a; //GPS
+
+    //server2client
+    S_C_CONNECTED = 0x00010001; //登录结果
+    S_C_JOIN_ROOM = 0x00010002; //有玩家加入房间
+    S_C_DISCONNECTED = 0x00010003; //被断开链接
+    S_C_EXIT_ROOM = 0x00010004; //有玩家退出房间
+    S_C_REFRESH_ROOM_CARD = 0x00010005; //刷新房卡
+    S_C_NOTICE = 0x00010006; //消息
+    S_C_PING = 0x00010007;
+    S_C_TALK = 0x00010008; //语音，表情
+    S_C_ONLINE_STATE = 0x00010009; //离开游戏状态
+    S_C_GM_CONTROL = 0x0001000a; //GM控制
+    S_C_DISSOLVE_VOTE = 0x0001000b; //有人发起解散
+    S_C_DISSOLVE_VOTE_RESULT = 0x0001000c; //某人对解散的投票
+    S_C_DEBUG_PROTO = 0x0001000d; //S_C的单个客户端调试多边，包装协议
+    S_C_GPS = 0x0001000e; //GPS
+    S_C_EXIT_ROOM_RESULT =  0x0001000f; //开始游戏前退出房间结果
+}
+
+
+//连接模式
+enum CONNECT_MODE {
+    ACCOUNT_PASSWD = 0; //账号登录，debug模式1
+    ALL_PLAYER = 1; //单人控制全部账号模式，debug模式2
+}
+
+//建立连接
+message C_S_Connecting {
+    required string sid = 1; //sid
+}
+
+//建立连接，测试模式
+message C_S_DebugConnecting {
+    message JoinRoomInfo{
+        required fixed32 action = 1; //0为加入房间，1为创建房间
+        optional string roomid = 2; //加入房间时需要房间号
+        optional string rule = 3; //创建房间时需要规则
+    }
+
+    required string account = 1;
+    required string passwd = 2;
+    required CONNECT_MODE mode = 5; //连接模式
+    optional JoinRoomInfo roomSetting = 6; //debug模式下需要传入创建房间和加入房间相关参数
+}
+
+//退出房间
+message C_S_ExitRoom {
+}
+
+//用于检测网络
+message C_S_Ping{
+}
+
+//聊天表情
+message C_S_Talk{
+    optional fixed32 emoticons = 1;
+    optional string voice = 2;
+    optional fixed32 duration = 3;
+}
+
+//GM控制
+message C_S_GMControl{
+    required string GMMessage = 1;
+}
+
+//解散
+message C_S_DissolveRoom{
+}
+
+//解散投票，true=解散
+message C_S_DissolveVote{
+    required bool result = 1;
+}
+
+//单个客户端调试多边，包装协议
+message C_S_DebugProto{
+    required fixed32 selfSide = 1;
+    required fixed32 msgCode = 2; //协议号
+    required bytes data = 3;
+}
+
+//发送GPS信息
+message C_S_Gps{
+    required string gpsValue = 1;
+}
+                                
+                                
+
+//玩家信息
+message PlayerInfo {
+    required fixed32 side = 1; //位置
+    required string nickname = 2; //昵称
+    optional sfixed64 coin = 4; //金币，预留
+    optional string ip = 6; //ip
+    optional fixed32 sex = 7; //性别
+    optional fixed32 roomCards = 8; //房卡数
+    optional string headImgUrl = 9; //头像链接
+    optional bool isGM = 10;//是否GM
+    optional fixed32 id = 11;
+    optional string account = 12;
+}
+
+//个人信息
+message MyInfo{
+    message RoomInfo {
+        optional string roomId = 1; //编号
+        optional string roomName = 2; //房间名
+        required fixed64 timestamp = 3;
+        repeated PlayerInfo playerList = 4; //其他玩家的信息
+        optional string roomSetting = 5; //房间设置，例如：经典斗地主-叫地主-4炸-6局
+        required fixed32 count = 6; //总局数
+        required fixed32 ownerSide = 7; //房主编号
+        required fixed32 currentRound = 8; //本轮局数
+        optional fixed32 playerCount = 9; //房间最大人数
+        optional fixed32 cardCount = 10; //总牌数
+        optional string extend = 11; //扩展字段
+    }
+    required bool result = 1; //True为成功，一般不会失败
+    required bool isRefresh = 2; //是否需要刷新，true为需要
+    optional RoomInfo roomInfo = 3; //房间数据
+    optional PlayerInfo selfInfo = 4; //个人信息
+    optional string reason = 5;
+}
+
+//建立连接
+message S_C_Connected {
+    optional MyInfo myInfo = 1;
+    required bool result = 2;//是否成功
+    optional string reason = 3; //失败原因
+    optional fixed64 curTimestamp = 4;
+}
+
+//别的玩家加入游戏
+message S_C_JoinRoom {
+    required PlayerInfo info = 1;
+    required bool isFull = 2; //房间是否已满
+}
+
+//断开
+message S_C_Disconnected {
+    required string reason = 1;
+    required fixed32 actionType = 2; //1重连2回大厅3大退
+}
+
+//退出房间
+message S_C_ExitRoom {
+    required PlayerInfo info = 1;
+}
+
+//刷新房卡
+message S_C_RefreshRoomCard{
+    required fixed32 roomCards = 1;
+}
+
+//公告广播
+message S_C_Notice {
+    required string txt = 1;
+    optional fixed32 repeatTimes = 2;
+    optional fixed32 repeatInterval = 3;
+    required fixed32 id = 4;
+}
+
+//用于检测网络
+message S_C_Ping{
+}
+
+//聊天表情
+message S_C_Talk{
+    optional fixed32 emoticons = 1;
+    required fixed32 talkSide = 2;
+    optional string voice = 3;
+    optional fixed32 duration = 4;
+}
+
+//离开游戏
+message S_C_OnlineState{
+    required fixed32 changeSide = 1;
+    required bool isOnline = 2;
+}
+
+//GM控制的结果，True为成功
+message S_C_GMControl {
+    required bool result = 1;
+    required string reason = 2;
+}
+
+
+//广播告知有人想解散，需要投票
+message S_C_DissolveVote{
+    message DissolveData{
+        optional bool result = 1; //True为成功
+        required string nickname = 2;
+    }
+    repeated DissolveData vote = 1;
+    optional fixed64 waitTime = 2; //等待的时间
+    required string nickname = 3; //申请解散的人
+    required fixed32 dissolveSide = 4; //申请解散的人的位置
+}
+
+//解散投票结果，true=解散
+message S_C_DissolveVoteResult{
+    required bool result = 1;
+}
+
+//单个客户端调试多边，包装协议
+message S_C_DebugProto{
+    required fixed32 selfSide = 1;
+    required fixed32 msgCode = 2; //协议号
+    required bytes data = 3;
+}
+
+//发送GPS信息
+message S_C_Gps{
+    message gpsData{
+        required fixed32 chair = 1;
+        required string gpsValue = 2; 
+    }
+    repeated gpsData gpsDatas = 1;
+}
+
+//开始游戏前退出房间结果
+message S_C_ExitRoomResult{
+    required bool result = 1; //true成功，false失败
+    optional string reason = 2; //失败提示
+}
+
+

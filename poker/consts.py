@@ -1,0 +1,40 @@
+# -*- coding:utf-8 -*-
+#!/bin/python
+
+NO_START = -1
+CHOOSE_MULTIPLE_S = 2
+DEALING_E = 3
+# ARRANGE_E = 3
+COMPARE_S = 4
+
+NORMAL = 0
+
+DIAMOND_A = 'Aa'
+DIAMOND_5 = '5a'
+DIAMOND_10 = 'Ta'
+
+DIAMOND_A_NO = 0
+DIAMOND_5_NO = 1
+DIAMOND_10_NO = 2
+
+NO2CARD = {
+    DIAMOND_A_NO    :     DIAMOND_A, \
+    DIAMOND_5_NO    :     DIAMOND_5, \
+    DIAMOND_10_NO   :     DIAMOND_10, \
+}
+
+MULTIPLE_3 = 0
+MULTIPLE_2 = 1
+MULTIPLE_1 = 2
+
+HAS_JOKER = 0 #有鬼
+HAS_HORSE = 1 #有马
+SHOOT_ADD_1 = 2 #打枪+1
+FU_QING = 3 #福清玩法
+HAS_DO_DEALER = 4 #房主坐庄
+
+HEAD_PIER = 0
+MIDDLE_PIER = 1
+TAIL_PIER = 2
+SPECIAL = 3
+PIER_LIST = [HEAD_PIER, MIDDLE_PIER,TAIL_PIER]

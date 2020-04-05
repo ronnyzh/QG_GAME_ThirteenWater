@@ -1,0 +1,20 @@
+package replay4proto;
+
+//按时间顺序储存所有协议
+
+message ActionData{
+    required fixed32 msgCode = 1; //协议号
+    required bytes replayMessage = 2; //协议字符串，需要解析
+    required fixed64 timestamp = 3; //时间戳
+}
+
+message TilesData{
+    required fixed32 side = 1;
+    required bytes tiles = 2; //手牌信息，使用S_C_DEAL_TILES记录
+}
+
+message ReplayData{
+    repeated ActionData data = 1;
+    required bytes privateData =2; //个人信息，使用S_C_RefreshData记录
+    repeated TilesData mahjongData = 3; //每个人的手牌
+}

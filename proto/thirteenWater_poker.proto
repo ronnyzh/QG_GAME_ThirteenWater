@@ -1,0 +1,147 @@
+import "poker.proto";
+package thirteenWater_poker;
+
+//为防止编号冲突，扩展协议命名需从0x00012000或者0x00013000之类的位置开始
+
+enum MSG_HEADER {
+    //client2server 0x00012001
+    C_S_ARRANGED_CARDS = 0x00012001; //整理过的牌
+    C_S_SET_MULTIPLE = 0x00012002; //设置倍数
+    C_S_GET_ARRANGED_CARDS = 0x00012003;
+
+    //server2client
+    S_C_REFRESH_DATAS = 0x00013001; //刷新数据
+    S_C_NEW_DEAL_CARDS = 0x00013002; //发牌
+    S_C_ARRANGED_CARDS = 0x00013003;
+    S_C_COMPARE = 0x00013004; //比牌
+    S_C_SET_MULTIPLE = 0x00013005; //设置倍数
+    S_C_MULTIPLE_RESULT = 0x00013006; //倍数结果
+    S_C_SEND_OK_DATA = 0x00013007;
+    S_C_MY_ARRANGED_CARDS = 0x00013008;
+
+}
+
+enum CARD_TYPES {
+    NO_TYPE = -1;
+
+    OOLONG = 0; //乌龙
+    PAIR = 1; //对子
+    TWO_PAIR = 2; //两对
+    TRIPLET = 3; //三条(冲三)
+    DOUBLE_GHOST = 4; //双鬼冲头
+    STRAIGHT = 5; //顺子
+    FLUSH = 6; //同花
+    GOURD = 7; //葫芦
+    IRON_BRANCH = 8; //铁支
+    STRAIGHT_FLUSH = 9; //同花顺
+    FIVE_HEADS = 10; //五同
+
+    //特殊牌型
+    THREE_FLUSH = 11; //三同花
+    THREE_STRAIGHT = 12; //三顺子
+    SIX_PAIRS = 13; //六对半
+    FIVE_PAIRS_A_TRIPLET = 14; //五对三条
+    FOUR_TRIPLET = 15; //四套三条
+    ONE_COLOR = 16; //凑一色
+    ALL_SMALL = 17; //全小
+    ALL_BIG = 18; //全大
+    SIX_HEADS = 19; //六同
+    THREE_POINTS = 20; //三分天下
+    THREE_STRAIGHT_FLUSH = 21; //三同花顺
+    TWELVE_ROYALTY = 22; //十二皇族
+    SEVEN_HEADS = 23; //七同
+    DRAGON = 24; //一条龙
+    SUPREME_QINGLONG = 25; //至尊青龙
+}
+
+//client2server
+
+message C_S_ArrangedCards {
+    repeated string cards = 1; //['头墩','中墩','尾墩']
+    repeated CARD_TYPES cardTypes = 2;
+}
+
+message C_S_SetMultiple {
+    required fixed32 multiple = 1; //倍数(1,2,3)
+}
+
+//获得牌数据
+message C_S_GetArrangedCards {
+}
+
+//server2client
+
+//刷新数据
+message S_C_RefreshDatas {
+    required bool result = 1; //True有数据
+    optional poker.S_C_RefreshData refreshData = 2;
+    optional string reason = 3;
+    optional S_C_Compare compareData = 4;
+    optional string cards = 5;
+    optional string defultCards = 6;
+    optional sfixed32 gameStage = 7;
+    optional CARD_TYPES specialType = 8;//特殊牌型，不是特殊牌型发NO_TYPE
+    optional fixed32 typeScore = 9;
+    optional poker.S_C_Balance balanceData = 10;
+    optional S_C_SetMultiple chooseMultiple = 11; //选择倍数
+    optional fixed64 startTime = 12;
+    repeated fixed32 waitCompareSides = 13; //完成理牌的边
+    repeated S_C_MultipleResult multipleList = 14; //倍数数据
+    repeated fixed32 okList = 15;
+}
+
+//开始游戏时发送手牌
+message S_C_NewDealCards{
+    required string cards = 1; //手牌
+    required fixed64 timestamp = 2;
+    required CARD_TYPES specialType = 3; //特殊牌型，不是特殊牌型发NO_TYPE
+    required fixed32 typeScore = 4;
+    optional string defultCards = 5;
+}
+
+message S_C_ArrangedCards {
+    required fixed32 side = 1;
+    optional fixed32 SpecialType = 2;   //是否特殊牌型,1是,0否
+    //repeated string cards = 2;
+    //repeated CARD_TYPES cardTypes = 3;
+    //optional bool result = 4; //True为有效的数据
+    //optional string reason = 5;
+}
+
+message S_C_Compare {
+    //[头墩数据，中墩数据，尾墩数据]，如:['0,1,2,3','2,1,3,0','2,1,3,0'],'0,1,2,3'牌从小到大的边
+    repeated string normalDatas = 1;
+    repeated fixed32 specialDatas = 2; //[1, 2, 3]特殊牌型从小到大的边
+    repeated string shootDatas = 3; //['开枪的边;中枪的边1,中枪的边2,...', '...']
+    repeated CardData cardDatas = 4;
+    optional fixed32 horseSide = 5; //有马的边，没有不发
+}
+
+message CardData {
+    required fixed32 side = 1;
+    repeated string cards = 2; //['头墩','中墩','尾墩'] or ['特殊牌']
+    repeated CARD_TYPES cardTypes = 3;
+    repeated string scoreDatas = 4; //['baseScore, 特殊加分','','']依次是头墩，中墩，尾墩
+    optional sfixed32 speScore = 5;
+}
+
+message S_C_SetMultiple {
+    repeated fixed32 canChoose = 1;
+}
+
+message S_C_MultipleResult {
+    required fixed32 side = 1;
+    required fixed32 multiple = 2; //倍数(1,2,3)
+    //optional bool result = 3; //True为有效的数据
+    //optional string reason = 4;
+}
+
+message S_C_SendOkData {
+    required fixed32 side = 1;
+}
+
+message S_C_MyArrangedCards {
+    required fixed32 side = 1;
+    repeated string cards = 2;
+    repeated CARD_TYPES cardTypes = 3;
+}

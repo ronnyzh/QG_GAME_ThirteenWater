@@ -1,0 +1,180 @@
+import "baseProto.proto";
+package poker;
+
+//为防止编号冲突，扩展协议命名需从0x00022000或者0x00033000之类的位置开始
+
+enum MSG_HEADER {
+    //client2server
+    C_S_REFRESH_DATA = 0x00020001; //刷新数据
+    C_S_GAME_START = 0x00020002; //游戏开始
+    C_S_DO_ACTION = 0x00020003; 
+    C_S_READY_NEXT = 0x00020004; //关闭结算窗口准备好下一局
+    C_S_GET_OLD_BALANCE = 0x00020005; //获得上局结算信息
+
+    //server2client
+    S_C_REFRESH_DATA = 0x00031001; //刷新数据
+    S_C_SET_START = 0x00031002; //小局开始
+    S_C_DEAL_CARDS = 0x00031003; //发牌
+    S_C_TURN_ACTION = 0x00031004; //action可选项
+    S_C_DO_ACTION_RESULT = 0x00031005;
+    S_C_BALANCE = 0x00031006; //得分数据
+    S_C_GAME_START_RESULT = 0x00031007; //开始游戏结果
+    S_C_OLD_BALANCE = 0x00031008; //上局结算数据
+}
+
+//游戏阶段
+enum GAME_STAGE{
+    WAIT_START = -1; //等待开始
+    GAME_READY = 0; //等待下一局
+    GAMING = 1; //游戏中
+}
+
+//Action的信息
+message Action {
+    //0:过，1:出牌
+    required fixed32 action = 1;
+    //抽象的牌字串列表,（根据不同规则或action的需要传不同的牌字串列表）
+    repeated string datas = 2;
+}
+
+message RefreshData{
+    message PlayerRestoreData{
+        required fixed32 side = 1; //位置
+        //玩家已有操作的数据抽象[$手牌列表,$..,...]
+        repeated string cardDatas = 2;
+        optional bool isOnline = 3; //是否在线
+    }
+
+    required baseProto.MyInfo gameInfo= 1;
+    required fixed64 Countdown = 2; //倒计时
+    repeated PlayerRestoreData playerDatas = 3; //需回复的玩家数据
+    required fixed32 currentSide = 4; //当前操作玩家
+    required fixed32 dealerSide = 5; //庄家（地主）
+    required GAME_STAGE stage = 6; //阶段
+    optional S_C_TurnAction allowAction = 7; 
+    required fixed32 dissolveStage = 8;//解散阶段，0没解散，1未投票，2已投票，3成功解散
+    optional baseProto.S_C_DissolveVote voteData = 9;//解散信息
+}
+
+//==C_S====
+
+//新一轮开始
+message C_S_GameStart{
+}
+
+//例如：斗地主选择出牌或者过
+message C_S_DoAction{
+    required fixed32 action = 1;
+    //抽象的牌字串列表,例如：斗地主使用癞子时,[出的牌字串,使用的癞子牌,癞子代表的牌]
+    // 如：4是癞子，['3a,3b,3c,4w', '3w']表示炸弹四张3
+    //  ['4w,4w,7a,7b,8a,8b', '9w,9w']表示789连对
+    repeated string datas = 2;
+    required fixed32 num = 3; //action编号
+}
+
+//关闭结算窗口后，准备开始下一局
+message C_S_ReadyNext{
+}
+
+//刷新数据
+message C_S_RefreshData{
+}
+
+//获得上局结算
+message C_S_GetOldBalance{
+}
+
+//==S_C====
+
+//开始游戏结果
+message S_C_GameStartResult{
+    required bool result = 1; //true成功，false失败
+    optional string reason = 2; //失败提示
+}
+
+//游戏开始
+message S_C_SetStart{
+    required fixed64 timestamp = 1;
+    optional fixed32 dealerSide = 2;
+    optional fixed32 dealerCount = 3;
+}
+
+//开始游戏时发送手牌
+message S_C_DealCards{
+    required string cards = 1; //手牌
+    required fixed64 timestamp = 2;
+    optional bool isReDeal = 3; //是否重新发牌
+}
+
+//可选哪些Action
+message S_C_TurnAction {
+    required fixed32 side = 1;
+    repeated Action action = 2;
+    optional fixed32 num = 3; //action编号
+}
+
+message S_C_DoActionResult{
+    required fixed32 side = 1;
+    required fixed32 action = 2;
+    //抽象的牌字串列表,
+    repeated string datas = 3;
+}
+
+//输赢数据
+message S_C_Balance{
+    message CommonData {
+        repeated string datas = 1;
+        //以斗地主为例，[1]是春天，[2]是反春天
+        repeated fixed32 extendData = 2;
+    }
+    message BalanceData{
+        //结算信息归为3类：
+        //1分数,2次数,3牌数据
+        //此3类数据都根据不同游戏规则组装成对应的列表
+        repeated string descs = 1; //结算描述，直接发给客户端显示的结算字符串数组
+        repeated fixed32 times = 2;
+        repeated string cards = 3;
+        required sfixed32 score = 4; //输赢
+        required string nickname = 5; //昵称
+        required fixed32 side = 6; //位置
+        optional fixed32 id = 7;
+        optional bool isOwner = 8; //是否房主
+        optional string roomSetting = 9; //房间设置，鬼牌等各种
+        optional fixed64 timestamp = 10;
+        optional string headImgUrl = 11; //头像
+        optional bool isDealer = 12; //是否庄家(地主)
+        optional bool isWin = 13; //是否胜利
+        optional fixed32 ranking = 14; //名次，从0开始
+        repeated string extend = 15; //扩展
+    }
+    repeated BalanceData setUserDatas = 1; //所有玩家的结算需要数据
+    repeated BalanceData gameUserDatas = 2; //总游戏结束的报表数据，当打完房卡可打的局数或解散后发送
+    repeated CommonData gameCommonDatas = 3; //游戏结算公共数据
+    optional bool isNormalEndGame = 4;//是否正常结束一局，如果是中途解散则为False
+}
+
+//刷新数据
+message S_C_RefreshData{
+    optional RefreshData data = 1;
+    required bool result = 2; //True有数据
+    optional string reason = 3;
+}
+
+//广播告知有人想解散，需要投票
+message S_C_DissolveVote{
+    message DissolveData{
+        optional bool result = 1; //True为成功
+        required string nickname = 2;
+    }
+    repeated DissolveData vote = 1;
+    optional fixed64 waitTime = 2; //等待的时间
+    required string nickname = 3; //申请解散的人
+    required fixed32 dissolveSide = 4; //申请解散的人的位置
+}
+
+//上局结算数据
+message S_C_OldBalance{
+    optional S_C_Balance balance = 1;
+}
+
+
